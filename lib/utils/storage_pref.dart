@@ -19,7 +19,6 @@ import 'package:PiliPlus/models/common/super_chat_type.dart';
 import 'package:PiliPlus/models/common/super_resolution_type.dart';
 import 'package:PiliPlus/models/common/theme/theme_type.dart';
 import 'package:PiliPlus/models/common/video/audio_quality.dart';
-import 'package:PiliPlus/models/common/video/cdn_type.dart';
 import 'package:PiliPlus/models/common/video/live_quality.dart';
 import 'package:PiliPlus/models/common/video/subtitle_pref_type.dart';
 import 'package:PiliPlus/models/common/video/video_decode_type.dart';
@@ -126,10 +125,8 @@ abstract final class Pref {
     }
     return SegmentType.values
         .map(
-          (item) => Pair(
-            first: item,
-            second: SkipType.values[list[item.index]],
-          ),
+          (item) =>
+              Pair(first: item, second: SkipType.values[list[item.index]]),
         )
         .toList();
   }
@@ -139,13 +136,11 @@ abstract final class Pref {
     if (list == null || list.length != SegmentType.values.length) {
       return SegmentType.values.map((i) => i.color).toList();
     }
-    return SegmentType.values.map(
-      (item) {
-        final String e = list[item.index];
-        final color = e.isNotEmpty ? int.tryParse('FF$e', radix: 16) : null;
-        return color != null ? Color(color) : item.color;
-      },
-    ).toList();
+    return SegmentType.values.map((item) {
+      final String e = list[item.index];
+      final color = e.isNotEmpty ? int.tryParse('FF$e', radix: 16) : null;
+      return color != null ? Color(color) : item.color;
+    }).toList();
   }
 
   static bool get feedBackEnable =>
@@ -287,13 +282,6 @@ abstract final class Pref {
     SettingBoxKey.autosync,
     defaultValue: Platform.isAndroid ? '30' : '0',
   );
-
-  static CDNService get defaultCDNService {
-    if (_setting.get(SettingBoxKey.CDNService) case final String cdnName) {
-      return CDNService.values.byName(cdnName);
-    }
-    return CDNService.backupUrl;
-  }
 
   static String get banWordForRecommend =>
       _setting.get(SettingBoxKey.banWordForRecommend, defaultValue: '');
@@ -457,9 +445,6 @@ abstract final class Pref {
 
   static bool get continuePlayingPart =>
       _setting.get(SettingBoxKey.continuePlayingPart, defaultValue: true);
-
-  static bool get cdnSpeedTest =>
-      _setting.get(SettingBoxKey.cdnSpeedTest, defaultValue: true);
 
   static bool get autoUpdate =>
       _setting.get(SettingBoxKey.autoUpdate, defaultValue: true);
@@ -635,9 +620,6 @@ abstract final class Pref {
 
   static bool get enableLog =>
       _setting.get(SettingBoxKey.enableLog, defaultValue: true);
-
-  static bool get disableAudioCDN =>
-      _setting.get(SettingBoxKey.disableAudioCDN, defaultValue: false);
 
   static int get minDurationForRcmd =>
       _setting.get(SettingBoxKey.minDurationForRcmd, defaultValue: 0);
@@ -988,8 +970,6 @@ abstract final class Pref {
       _setting.get(SettingBoxKey.setSystemBrightness, defaultValue: false);
 
   static String? get downloadPath => _setting.get(SettingBoxKey.downloadPath);
-
-  static String? get liveCdnUrl => _setting.get(SettingBoxKey.liveCdnUrl);
 
   static bool get showBatteryLevel => _setting.get(
     SettingBoxKey.showBatteryLevel,

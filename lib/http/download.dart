@@ -150,15 +150,16 @@ abstract final class DownloadHttp {
         );
       } else {
         final first = response.durl!.first;
+        final resolution = VideoUtils.resolveCdnUrl(first.playUrls);
         final List<Type1Segment> segmentList = [
           Type1Segment(
-            backupUrls: [],
+            backupUrls: resolution.fallbackUrls,
             bytes: first.size!,
             duration: first.length!,
             md5: '',
             metaUrl: '',
             order: first.order!,
-            url: VideoUtils.getCdnUrl(first.playUrls),
+            url: resolution.primaryUrl,
           ),
         ];
         final FormatItem? formatItem = response.supportFormats
@@ -176,10 +177,7 @@ abstract final class DownloadHttp {
           ..qualityPithyDescription = description;
 
         final List<Type1PlayerCodecConfig> playerCodecConfigList = [
-          Type1PlayerCodecConfig(
-            player: "IJK_PLAYER",
-            useIjkMediaCodec: false,
-          ),
+          Type1PlayerCodecConfig(player: "IJK_PLAYER", useIjkMediaCodec: false),
           Type1PlayerCodecConfig(
             player: "ANDROID_PLAYER",
             useIjkMediaCodec: false,

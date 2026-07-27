@@ -13,6 +13,7 @@ import 'package:PiliPlus/plugin/pl_player/controller.dart';
 import 'package:PiliPlus/plugin/pl_player/widgets/common_btn.dart';
 import 'package:PiliPlus/services/shutdown_timer_service.dart'
     show shutdownTimerService;
+import 'package:PiliPlus/services/cdn_accelerator_service.dart';
 import 'package:PiliPlus/utils/android/bindings.g.dart';
 import 'package:PiliPlus/utils/extension/context_ext.dart';
 import 'package:PiliPlus/utils/extension/size_ext.dart';
@@ -95,10 +96,7 @@ class _LiveHeaderControlState extends State<LiveHeaderControl>
               if (widget.upName case final upName?)
                 Text(
                   upName,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.white,
-                  ),
+                  style: const TextStyle(fontSize: 12, color: Colors.white),
                 ),
               liveController.watchedWidget,
               widget.onlineWidget,
@@ -140,11 +138,7 @@ class _LiveHeaderControlState extends State<LiveHeaderControl>
                 height: 30,
                 tooltip: '${isAlwaysOnTop ? '取消' : ''}置顶',
                 icon: isAlwaysOnTop
-                    ? const Icon(
-                        size: 18,
-                        Icons.push_pin,
-                        color: Colors.white,
-                      )
+                    ? const Icon(size: 18, Icons.push_pin, color: Colors.white)
                     : const Icon(
                         size: 18,
                         Icons.push_pin_outlined,
@@ -233,11 +227,7 @@ class _LiveHeaderControlState extends State<LiveHeaderControl>
               isFullScreen: isFullScreen,
               isLive: true,
             ),
-            icon: const Icon(
-              size: 18,
-              Icons.schedule,
-              color: Colors.white,
-            ),
+            icon: const Icon(size: 18, Icons.schedule, color: Colors.white),
           ),
           if (plPlayerController.videoPlayerController case final player?)
             SizedBox.square(
@@ -399,43 +389,58 @@ class _LiveHeaderControlState extends State<LiveHeaderControl>
                                         ? currStyle
                                         : const TextStyle(fontSize: 14),
                                   ),
-                                  children: codec.urlInfo.mapIndexed((ui, url) {
-                                    final isCurrUrl =
-                                        isCurrCodec &&
-                                        ui == controller.liveUrlIndex;
-                                    return ListTile(
-                                      dense: true,
-                                      title: Text(
-                                        '${url.host}...',
-                                        style: isCurrUrl
-                                            ? const TextStyle(fontSize: 14)
-                                            : TextStyle(
-                                                fontSize: 14,
-                                                color: onSurfaceVariant,
-                                              ),
-                                      ),
-                                      selected: isCurrUrl,
-                                      onTap: isCurrUrl
-                                          ? null
-                                          : () {
-                                              Get.back();
-                                              controller.initLiveUrl(
-                                                streamIndex: si,
-                                                formatIndex: fi,
-                                                codecIndex: ci,
-                                                liveUrlIndex: ui,
-                                              );
-                                              GStorage.setting.put(
-                                                SettingBoxKey.liveStream,
-                                                [
-                                                  stream.protocolName!,
-                                                  format.formatName!,
-                                                  codec.codecName!,
-                                                ],
-                                              );
-                                            },
-                                    );
-                                  }).toList(),
+                                  children: codec.urlInfo.indexed
+                                      .where(
+                                        (entry) => CdnAcceleratorService
+                                            .instance
+                                            .usableLiveIndexes([
+                                              for (final item in codec.urlInfo)
+                                                (
+                                                  host: item.host,
+                                                  extra: item.extra,
+                                                ),
+                                            ])
+                                            .contains(entry.$1),
+                                      )
+                                      .map((entry) {
+                                        final (ui, url) = entry;
+                                        final isCurrUrl =
+                                            isCurrCodec &&
+                                            ui == controller.liveUrlIndex;
+                                        return ListTile(
+                                          dense: true,
+                                          title: Text(
+                                            '${url.host}...',
+                                            style: isCurrUrl
+                                                ? const TextStyle(fontSize: 14)
+                                                : TextStyle(
+                                                    fontSize: 14,
+                                                    color: onSurfaceVariant,
+                                                  ),
+                                          ),
+                                          selected: isCurrUrl,
+                                          onTap: isCurrUrl
+                                              ? null
+                                              : () {
+                                                  Get.back();
+                                                  controller.initLiveUrl(
+                                                    streamIndex: si,
+                                                    formatIndex: fi,
+                                                    codecIndex: ci,
+                                                    liveUrlIndex: ui,
+                                                  );
+                                                  GStorage.setting.put(
+                                                    SettingBoxKey.liveStream,
+                                                    [
+                                                      stream.protocolName!,
+                                                      format.formatName!,
+                                                      codec.codecName!,
+                                                    ],
+                                                  );
+                                                },
+                                        );
+                                      })
+                                      .toList(),
                                 );
                               }).toList(),
                             );

@@ -12,6 +12,7 @@ import 'package:PiliPlus/models/common/theme/theme_color_type.dart';
 import 'package:PiliPlus/plugin/pl_player/utils/fullscreen.dart';
 import 'package:PiliPlus/router/app_pages.dart';
 import 'package:PiliPlus/services/account_service.dart';
+import 'package:PiliPlus/services/cdn_accelerator_service.dart';
 import 'package:PiliPlus/services/download/download_service.dart';
 import 'package:PiliPlus/services/logger.dart';
 import 'package:PiliPlus/services/service_locator.dart';
@@ -94,6 +95,7 @@ void main() async {
   await _initAppPath();
   try {
     await GStorage.init();
+    await CdnAcceleratorService.instance.initialize();
   } catch (e) {
     await Utils.copyText(e.toString());
     if (kDebugMode) debugPrint('GStorage init error: $e');
@@ -283,10 +285,7 @@ class MyApp extends StatelessWidget {
         ),
         builder: _builder,
       ),
-      navigatorObservers: [
-        routeObserver,
-        FlutterSmartDialog.observer,
-      ],
+      navigatorObservers: [routeObserver, FlutterSmartDialog.observer],
       scrollBehavior: PlatformUtils.isDesktop
           ? const CustomScrollBehavior()
           : null,
@@ -320,10 +319,7 @@ class MyApp extends StatelessWidget {
       );
     }
     if (PlatformUtils.isDesktop) {
-      return BackDetector(
-        onBack: _onBack,
-        child: child,
-      );
+      return BackDetector(onBack: _onBack, child: child);
     }
     return child;
   }

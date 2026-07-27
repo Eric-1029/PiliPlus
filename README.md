@@ -1,253 +1,92 @@
 <div align="center">
-    <img width="200" height="200" src="assets/images/logo/logo.png">
+  <img width="180" height="180" src="assets/images/logo/logo.png" alt="PiliPlus">
+  <h1>PiliPlus</h1>
+  <p>使用 Flutter 开发的第三方 Bilibili 客户端</p>
+
+  [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+  [![Android](https://img.shields.io/badge/Android-supported-brightgreen.svg)](#平台支持)
+  [![GitHub release](https://img.shields.io/github/v/release/Eric-1029/PiliPlus)](https://github.com/Eric-1029/PiliPlus/releases)
 </div>
 
+> 本仓库是 [bggRGjQaUbCoE/PiliPlus](https://github.com/bggRGjQaUbCoE/PiliPlus)
+> 的修改版。新增的 Android 原生播放加速器以
+> [bilibili-accelerator v0.3.0 / commit 208cce9](https://github.com/realzza/bilibili-accelerator/tree/208cce947ed92ae8a6b0d03d930deb45a9dc39d5)
+> 为功能基线进行 Dart/Flutter 移植。
 
+## 播放加速
 
-<div align="center">
-    <h1>PiliPlus</h1>
-<div align="center">
-    
-![GitHub repo size](https://img.shields.io/github/repo-size/bggRGjQaUbCoE/PiliPlus) 
-![GitHub Repo stars](https://img.shields.io/github/stars/bggRGjQaUbCoE/PiliPlus) 
-![GitHub all releases](https://img.shields.io/github/downloads/bggRGjQaUbCoE/PiliPlus/total) 
-</div>
-    <p>使用Flutter开发的BiliBili第三方客户端</p>
-    
-<img src="assets/screenshots/510shots_so.png" width="32%" alt="home" />
-<img src="assets/screenshots/174shots_so.png" width="32%" alt="home" />
-<img src="assets/screenshots/850shots_so.png" width="32%" alt="home" />
-<br/>
-<img src="assets/screenshots/main_screen.png" width="96%" alt="home" />
-<br/>
-</div>
+Android 版本内置原生播放线路加速器，用于识别并避开 PCDN、MCDN、异常端口及已知慢节点。实现不依赖浏览器扩展、脚本注入或 WebRTC 上传。
 
+- 自动并行测速与固定服务器选线
+- “仅修复慢节点”“强制切换”“关闭”三种模式
+- MCDN 全部代理、仅资源接口代理或直接换域名
+- PCDN、海外镜像、异常端口及可选 Akamai 识别
+- 视频、音频、番剧、durl、直播、下载和投屏统一解析
+- 2.5 秒卡顿检测、候选线路轮换和原位置恢复
+- 实时速度、峰值、缓存曲线、节点及恢复统计
+- 脱敏诊断报告，不记录媒体签名和完整 URL
 
-<br/>
+入口位于“设置 → 音视频设置 → 播放加速”，播放器的“更多设置”中也提供实时状态面板。
 
-## 适配平台
+升级旧版本后，原 CDN 选项会迁移为“加速开启 + 自动选线”。iOS、Windows、Linux 和 macOS 不显示加速设置，直接使用服务端首选媒体 URL。
 
-- [x] Android
-- [x] iOS
-- [x] Pad
-- [x] Windows
-- [x] Linux
+## 其他功能
 
-[![Packaging status](https://repology.org/badge/vertical-allrepos/piliplus.svg)](https://repology.org/project/piliplus/versions)
+- 视频、番剧、直播与音频播放
+- 弹幕、字幕、倍速、画中画和后台播放
+- 离线缓存、DLNA 投屏和 WebDAV 设置备份
+- 动态、评论、收藏、稍后再看和多账号
+- Android、iOS、Windows、Linux 与 macOS 界面适配
 
-## refactor
+完整功能会随上游 PiliPlus 持续演进。
 
-- [ ] gRPC [wip]
-- [x] 用户界面
-- [x] 其他
+## 平台支持
 
-## feat
+| 平台 | 客户端 | 播放加速 |
+| --- | --- | --- |
+| Android | 支持 | 完整支持 |
+| iOS / iPadOS | 支持 | 不启用 |
+| Windows | 支持 | 不启用 |
+| Linux | 支持 | 不启用 |
+| macOS | 支持 | 不启用 |
 
-- [x] 编辑动态
-- [x] DLNA 投屏
-- [x] 离线缓存/播放
-- [x] 移动端支持点击弹幕悬停，点赞、复制、举报 by [@My-Responsitories](https://github.com/My-Responsitories)
-- [x] 播放音频
-- [x] 跳过番剧片头/片尾
-- [x] 安卓端 `loudnorm` 适配 by [@My-Responsitories](https://github.com/My-Responsitories)
-- [x] Win/Mac 支持极验、短信登录 by [@My-Responsitories](https://github.com/My-Responsitories)
-- [x] 视频截取动图 by [@My-Responsitories](https://github.com/My-Responsitories)
-- [x] AI 原声翻译
-- [x] SuperChat
-- [x] 播放课堂视频
-- [x] 发起投票
-- [x] 发布动态/评论支持`富文本编辑`/`表情显示`/`@用户`
-- [x] 修改消息设置
-- [x] 修改聊天设置
-- [x] 展示折叠消息
-- [x] 查看用户图文
-- [x] 动态话题
-- [x] 直播分区
-- [x] 分享`视频`/`番剧`/`动态`/`专栏`/`直播`至消息
-- [x] 创建/修改/删除关注分组
-- [x] 移除粉丝
-- [x] 直播弹幕发送表情
-- [x] 收藏夹排序
-- [x] 稍后再看 ~~`未看`~~ / `未看完` / ~~`已看完`~~ 分类
-- [x] WebDAV 备份/恢复设置
-- [x] 保存评论/动态
-- [x] 高级弹幕 by [@My-Responsitories](https://github.com/My-Responsitories)
-- [x] 取消/置顶评论
-- [x] 记笔记
-- [x] 多账号支持 by [@My-Responsitories](https://github.com/My-Responsitories)
-- [x] 屏蔽带货动态/评论
-- [x] 互动视频
-- [x] 发评/动态反诈
-- [x] 高能进度条
-- [x] 滑动跳转预览视频缩略图
-- [x] Live Photo
-- [x] 复制/移动/排序收藏夹/稍后再看视频
-- [x] 超分辨率
-- [x] 合并弹幕
-- [x] 会员彩色弹幕
-- [x] 播放全部/继续播放/倒序播放
-- [x] Cookie登录
-- [x] 显示视频分段信息
-- [x] 调节字幕大小
-- [x] 调节全屏弹幕大小
-- [x] 收藏夹/稍后再看多选删除
-- [x] 搜索用户动态
-- [x] 直播弹幕
-- [x] 修改头像/用户名/签名/性别/生日
-- [x] 创建/编辑/删除收藏夹
-- [x] 评论楼中楼查看对话
-- [x] 评论楼中楼定位点击查看的评论
-- [x] 评论楼中楼按热度/时间排序
-- [x] 评论点踩
-- [x] 私信发图
-- [x] 投币动画
-- [x] 取消/追番，更新追番状态
-- [x] 取消/订阅合集
-- [x] SponsorBlock
-- [x] 显示视频完整合集
-- [x] 三连动画
-- [x] 番剧三连
-- [x] 带图评论
-- [x] 视频TAG
-- [x] 筛选搜索
-- [x] 转发动态
-- [x] 合集图片
-- [x] 删除/置顶/撤回私信
-- [x] 举报用户/评论/视频/动态
-- [x] 删除/发布/置顶文本/图片动态
-- [x] 其他
+## 下载与构建
 
-## opt
+预构建 APK 可从 [Releases](https://github.com/Eric-1029/PiliPlus/releases) 下载。
 
-- [x] 专栏界面
-- [x] 私信界面
-- [x] 收藏面板
-- [x] PIP
-- [x] 视频封面
-- [x] 回复界面
-- [x] 系统通知
-- [x] 评论显示
-- [x] 亮度调节
-- [x] 视频播放
-- [x] 视频staff
-- [x] 防止bottomsheet遮挡全屏视频
-- [x] 其他
+本地构建需要 Flutter 稳定版以及可用的 Android SDK：
 
-## fix
+```bash
+flutter pub get
+flutter test
+flutter build apk --release --split-per-abi
+```
 
-- [x] 番剧分集点赞/投币/收藏
-- [x] bugs
+## 开源协议
 
-<br/>
+PiliPlus 及本修改版整体依据 [GNU General Public License v3.0](LICENSE) 发布。分发 APK 时，对应源代码通过本仓库同一 Release 标签公开。
 
-## 功能
+播放加速规则与策略移植自 `realzza/bilibili-accelerator`：
 
-- [x] 推荐视频列表(app端)
-- [x] 最热视频列表
-- [x] 热门直播
-- [x] 番剧列表
-- [x] 屏蔽黑名单内用户视频
-- [x] 无痕模式（播放视为未登录）
-- [x] 游客模式（推荐视为未登录）
+- 基线版本：v0.3.0
+- 固定提交：`208cce947ed92ae8a6b0d03d930deb45a9dc39d5`
+- 原项目协议：MIT
+- 原版权声明：Copyright © 2026 realzza
 
-- [x] 用户相关
-  - [x] 粉丝、关注用户、拉黑用户查看
-  - [x] 用户主页查看
-  - [x] 关注/取关用户
-  - [x] 离线缓存
-  - [x] 稍后再看
-  - [x] 观看记录
-  - [x] 我的收藏
-  - [x] 站内私信
-  
-- [x] 动态相关
-  - [x] 全部、投稿、番剧分类查看
-  - [x] 动态评论查看
-  - [x] 动态评论回复功能
-
-- [x] 视频播放相关
-  - [x] 双击快进/快退
-  - [x] 双击播放/暂停
-  - [x] 垂直方向调节亮度/音量
-  - [x] 垂直方向上滑全屏、下滑退出全屏
-  - [x] 水平方向手势快进/快退
-  - [x] 全屏方向设置
-  - [x] 倍速选择/长按2倍速
-  - [x] 硬件加速（视机型而定）
-  - [x] 画质选择（高清画质未解锁）
-  - [x] 音质选择（视视频而定）
-  - [x] 解码格式选择（视视频而定）
-  - [x] 弹幕
-  - [x] 字幕
-  - [x] 记忆播放
-  - [x] 视频比例：高度/宽度适应、填充、包含等
-     
-- [x] 搜索相关
-  - [x] 热搜
-  - [x] 搜索历史
-  - [x] 默认搜索词
-  - [x] 投稿、番剧、直播间、用户搜索
-  - [x] 视频搜索排序、按时长筛选
-    
-- [x] 视频详情页相关
-  - [x] 视频选集(分p)切换
-  - [x] 点赞、投币、收藏/取消收藏
-  - [x] 相关视频查看
-  - [x] 评论用户身份标识
-  - [x] 评论(排序)查看、二楼评论查看
-  - [x] 主楼、二楼评论回复功能
-  - [x] 评论点赞
-  - [x] 评论笔记图片查看、保存
-
-- [x] 设置相关
-  - [x] 画质、音质、解码方式预设      
-  - [x] 图片质量设定
-  - [x] 主题模式：亮色/暗色/跟随系统
-  - [x] 震动反馈(可选)
-  - [x] 高帧率
-  - [x] 自动全屏
-  - [x] 横屏适配
-- [ ] 等等
-
-<br/>
-
-## 下载
-
-可以通过右侧release进行下载或拉取代码到本地进行编译
-
-<br/>
+MIT 版权和许可原文见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。本项目对移植代码所作的修改与原项目作者无关。
 
 ## 声明
 
-此项目（PiliPlus）是个人为了兴趣而开发，仅用于学习和测试，请于下载后24小时内删除。
-所用API皆从官方网站收集，不提供任何破解内容。
-在此致敬原作者：[guozhigq/pilipala](https://github.com/guozhigq/pilipala)
-在此致敬上游作者：[orz12/PiliPalaX](https://github.com/orz12/PiliPalaX)
-本仓库做了更激进的修改，感谢原作者的开源精神。
+本项目仅供学习、研究和个人测试，不隶属于或代表哔哩哔哩。项目不提供破解内容；使用者应遵守所在地法律、平台服务条款和内容版权要求。
 
-感谢使用
-
-
-<br/>
+本软件按 GPL‑3.0 “原样”提供，不附带任何明示或暗示担保。
 
 ## 致谢
 
-- [bilibili-API-collect](https://github.com/SocialSisterYi/bilibili-API-collect)
-- [flutter_meedu_videoplayer](https://github.com/zezo357/flutter_meedu_videoplayer)
+- [bggRGjQaUbCoE/PiliPlus](https://github.com/bggRGjQaUbCoE/PiliPlus)
+- [guozhigq/pilipala](https://github.com/guozhigq/pilipala)
+- [orz12/PiliPalaX](https://github.com/orz12/PiliPalaX)
+- [realzza/bilibili-accelerator](https://github.com/realzza/bilibili-accelerator)
+- [SocialSisterYi/bilibili-API-collect](https://github.com/SocialSisterYi/bilibili-API-collect)
 - [media-kit](https://github.com/media-kit/media-kit)
 - [dio](https://pub.dev/packages/dio)
-- 等等
-
-<br/>
-<br/>
-<br/>
-
-## Star History
-
-<a href="https://www.star-history.com/#bggRGjQaUbCoE/PiliPlus&Date">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=bggRGjQaUbCoE/PiliPlus&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=bggRGjQaUbCoE/PiliPlus&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=bggRGjQaUbCoE/PiliPlus&type=Date" />
- </picture>
-</a>

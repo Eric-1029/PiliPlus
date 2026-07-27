@@ -26,6 +26,7 @@ import 'package:PiliPlus/plugin/pl_player/controller.dart';
 import 'package:PiliPlus/plugin/pl_player/models/data_source.dart';
 import 'package:PiliPlus/plugin/pl_player/utils/danmaku_options.dart';
 import 'package:PiliPlus/services/service_locator.dart';
+import 'package:PiliPlus/services/cdn_accelerator_service.dart';
 import 'package:PiliPlus/tcp/live.dart';
 import 'package:PiliPlus/utils/accounts.dart';
 import 'package:PiliPlus/utils/connectivity_utils.dart';
@@ -53,9 +54,7 @@ class LiveRoomController extends GetxController {
   int roomId = Get.arguments;
   int? ruid;
   DanmakuController<DanmakuExtra>? danmakuController;
-  final plPlayerController = PlPlayerController.getInstance(
-    isLive: true,
-  );
+  final plPlayerController = PlPlayerController.getInstance(isLive: true);
 
   final isLoaded = false.obs;
   final roomInfoH5 = Rxn<RoomInfoH5Data>();
@@ -92,10 +91,7 @@ class LiveRoomController extends GetxController {
     }
     return Text(
       text,
-      style: const TextStyle(
-        fontSize: 12,
-        color: Colors.white,
-      ),
+      style: const TextStyle(fontSize: 12, color: Colors.white),
     );
   });
 
@@ -140,10 +136,7 @@ class LiveRoomController extends GetxController {
     if (watchedShow.value case final watchedShow?) {
       return Text(
         watchedShow,
-        style: const TextStyle(
-          fontSize: 12,
-          color: Colors.white,
-        ),
+        style: const TextStyle(fontSize: 12, color: Colors.white),
       );
     }
     return const SizedBox.shrink();
@@ -285,25 +278,27 @@ class LiveRoomController extends GetxController {
     this.streamIndex = streamIndex;
     this.formatIndex = formatIndex;
     this.codecIndex = codecIndex;
-    this.liveUrlIndex = liveUrlIndex;
-
     final CodecItem item = stream
         .getOrFirst(streamIndex)
         .format
         .getOrFirst(formatIndex)
         .codec
         .getOrFirst(codecIndex);
+    final usableIndexes = CdnAcceleratorService.instance.usableLiveIndexes([
+      for (final source in item.urlInfo)
+        (host: source.host, extra: source.extra),
+    ]);
+    this.liveUrlIndex = usableIndexes.contains(liveUrlIndex)
+        ? liveUrlIndex
+        : usableIndexes.first;
     // 以服务端返回的码率为准
     currentQn = item.currentQn;
     acceptQnList = item.acceptQn.map((e) {
-      return (
-        code: e,
-        desc: LiveQuality.fromCode(e)?.desc ?? e.toString(),
-      );
+      return (code: e, desc: LiveQuality.fromCode(e)?.desc ?? e.toString());
     }).toList();
     currentQnDesc.value =
         LiveQuality.fromCode(currentQn)?.desc ?? currentQn.toString();
-    videoUrl = VideoUtils.getLiveCdnUrl(item, index: liveUrlIndex);
+    videoUrl = VideoUtils.getLiveCdnUrl(item, index: this.liveUrlIndex);
     return playerInit()?.whenComplete(_startSizeSub);
   }
 
@@ -352,9 +347,7 @@ class LiveRoomController extends GetxController {
     EasyThrottle.throttle(
       'liveDm',
       const Duration(milliseconds: 500),
-      () => WidgetsBinding.instance.addPostFrameCallback(
-        _scrollToBottom,
-      ),
+      () => WidgetsBinding.instance.addPostFrameCallback(_scrollToBottom),
     );
   }
 
@@ -551,10 +544,7 @@ class LiveRoomController extends GetxController {
           Owner? reply;
           final replyMid = extra['reply_mid'];
           if (replyMid != null && replyMid != 0) {
-            reply = Owner(
-              mid: replyMid,
-              name: extra['reply_uname'],
-            );
+            reply = Owner(mid: replyMid, name: extra['reply_uname']);
           }
           addDm(
             DanmakuMsg(
@@ -648,10 +638,7 @@ class LiveRoomController extends GetxController {
   }
 
   void onLikeTapUp([_]) {
-    likeClickTimer ??= Timer(
-      const Duration(milliseconds: 800),
-      onLike,
-    );
+    likeClickTimer ??= Timer(const Duration(milliseconds: 800), onLike);
   }
 
   Future<void> onLike() async {

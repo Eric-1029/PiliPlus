@@ -19,6 +19,7 @@ import 'package:PiliPlus/models/common/sponsor_block/post_segment_model.dart';
 import 'package:PiliPlus/models/common/sponsor_block/segment_model.dart';
 import 'package:PiliPlus/models/common/sponsor_block/segment_type.dart';
 import 'package:PiliPlus/models/common/video/audio_quality.dart';
+import 'package:PiliPlus/models/common/video/cdn_accelerator.dart';
 import 'package:PiliPlus/models/common/video/source_type.dart';
 import 'package:PiliPlus/models/common/video/video_decode_type.dart';
 import 'package:PiliPlus/models/common/video/video_quality.dart';
@@ -50,6 +51,7 @@ import 'package:PiliPlus/plugin/pl_player/models/data_source.dart';
 import 'package:PiliPlus/plugin/pl_player/models/heart_beat_type.dart';
 import 'package:PiliPlus/plugin/pl_player/models/play_status.dart';
 import 'package:PiliPlus/services/download/download_service.dart';
+import 'package:PiliPlus/services/cdn_accelerator_service.dart';
 import 'package:PiliPlus/utils/accounts.dart';
 import 'package:PiliPlus/utils/connectivity_utils.dart';
 import 'package:PiliPlus/utils/extension/context_ext.dart';
@@ -128,8 +130,18 @@ class VideoDetailController extends GetxController
   double get uiScale => plPlayerController.uiScale;
 
   late VideoItem firstVideo;
+  AudioItem? firstAudio;
   String? videoUrl;
   String? audioUrl;
+  List<String> _videoSources = const [];
+  List<String> _audioSources = const [];
+  String? _avoidCdnHost;
+  Timer? _cdnStallTimer;
+  Timer? _cdnRetryTimer;
+  Timer? _cdnSpeedTimer;
+  Worker? _cdnBufferWorker;
+  bool _cdnStallEpisode = false;
+  bool _cdnRecovering = false;
   Duration? defaultST;
   Duration? playedTime;
   String get playedTimePos {
@@ -385,6 +397,16 @@ class VideoDetailController extends GetxController
       vsync: this,
       initialIndex: Pref.defaultShowComment ? 1 : 0,
     );
+    if (!isFileSource && CdnAcceleratorService.instance.isSupported) {
+      _cdnBufferWorker = ever<bool>(
+        plPlayerController.isBuffering,
+        _onCdnBufferingChanged,
+      );
+      _cdnSpeedTimer = Timer.periodic(
+        const Duration(seconds: 1),
+        (_) => _sampleCdnSpeed(),
+      );
+    }
   }
 
   Future<void> getMediaList({
@@ -549,10 +571,7 @@ class VideoDetailController extends GetxController
       alignment: Alignment.centerLeft,
       child: SlideTransition(
         position: animation.drive(
-          Tween<Offset>(
-            begin: const Offset(-1.0, 0.0),
-            end: Offset.zero,
-          ),
+          Tween<Offset>(begin: const Offset(-1.0, 0.0), end: Offset.zero),
         ),
         child: Padding(
           padding: const EdgeInsets.only(top: 5),
@@ -674,6 +693,94 @@ class VideoDetailController extends GetxController
     return bestVideo ?? videoList.first;
   }
 
+  void _resolveCdnSources() {
+    if (_videoSources.isNotEmpty) {
+      videoUrl = VideoUtils.resolveCdnUrl(
+        _videoSources,
+        avoidHost: _avoidCdnHost,
+      ).primaryUrl;
+    }
+    if (_audioSources.isNotEmpty) {
+      audioUrl = VideoUtils.resolveCdnUrl(
+        _audioSources,
+        avoidHost: _avoidCdnHost,
+      ).primaryUrl;
+    }
+  }
+
+  void _onCdnBufferingChanged(bool buffering) {
+    _cdnStallTimer?.cancel();
+    if (!buffering) {
+      _cdnRetryTimer?.cancel();
+      _cdnRetryTimer = null;
+      _cdnStallEpisode = false;
+      CdnAcceleratorService.instance.reportPlaying();
+      return;
+    }
+    _cdnStallTimer = Timer(const Duration(milliseconds: 2500), _handleCdnStall);
+  }
+
+  Future<void> _handleCdnStall() async {
+    final service = CdnAcceleratorService.instance;
+    final player = plPlayerController.videoPlayerController;
+    if (!service.config.enabled ||
+        !service.config.stallRecovery ||
+        service.config.selection != CdnSelectionMode.auto ||
+        !plPlayerController.visible ||
+        player == null ||
+        !player.state.playing ||
+        !plPlayerController.isBuffering.value) {
+      return;
+    }
+    if (!_cdnStallEpisode) {
+      _cdnStallEpisode = true;
+      service.reportBuffering();
+    }
+    await _recoverCdn();
+    if (plPlayerController.isBuffering.value) {
+      _cdnRetryTimer?.cancel();
+      _cdnRetryTimer = Timer(const Duration(seconds: 5), _handleCdnStall);
+    }
+  }
+
+  Future<void> _recoverCdn() async {
+    if (_cdnRecovering || plPlayerController.processing) return;
+    final player = plPlayerController.videoPlayerController;
+    if (player == null || _videoSources.isEmpty) return;
+    _cdnRecovering = true;
+    try {
+      playedTime = player.state.position;
+      _avoidCdnHost =
+          CdnAcceleratorService.instance.currentHost ?? _avoidCdnHost;
+      CdnAcceleratorService.instance.rotateTarget(_avoidCdnHost);
+      _resolveCdnSources();
+      CdnAcceleratorService.instance.reportRecovery();
+      await playerInit(autoplay: true);
+    } finally {
+      _cdnRecovering = false;
+    }
+  }
+
+  Future<void> boostCdn() async {
+    _avoidCdnHost = CdnAcceleratorService.instance.currentHost;
+    await _recoverCdn();
+  }
+
+  void _sampleCdnSpeed() {
+    final player = plPlayerController.videoPlayerController;
+    if (player is! NativePlayer) return;
+    final raw = player.getProperty('cache-speed');
+    final bytesPerSecond = double.tryParse(raw);
+    final mbps = bytesPerSecond == null ? 0.0 : bytesPerSecond * 8 / 1000000;
+    final ahead =
+        (plPlayerController.buffered.value - plPlayerController.position.value)
+            .toDouble();
+    CdnAcceleratorService.instance.recordSpeed(
+      mbps: mbps,
+      bufferedSeconds: ahead,
+    );
+  }
+
   /// 更新画质、音质
   void updatePlayer() {
     final currentVideoQa = this.currentVideoQa.value;
@@ -685,16 +792,18 @@ class VideoDetailController extends GetxController
       ..buffered.value = 0;
 
     firstVideo = findVideoByQa(currentVideoQa.code, setCodecs: true);
-    videoUrl = VideoUtils.getCdnUrl(firstVideo.playUrls);
+    _videoSources = firstVideo.playUrls.toList();
 
     /// 根据currentAudioQa 重新设置audioUrl
     if (currentAudioQa != null) {
-      final firstAudio = data.dash!.audio!.firstWhere(
+      firstAudio = data.dash!.audio!.firstWhere(
         (i) => i.id == currentAudioQa!.code,
         orElse: () => data.dash!.audio!.first,
       );
-      audioUrl = VideoUtils.getCdnUrl(firstAudio.playUrls, isAudio: true);
+      _audioSources = firstAudio!.playUrls.toList();
     }
+    _avoidCdnHost = null;
+    _resolveCdnSources();
 
     playerInit();
   }
@@ -727,10 +836,7 @@ class VideoDetailController extends GetxController
               isMp4: entry.mediaType == 1,
               hasDashAudio: entry.hasDashAudio,
             )
-          : NetworkSource(
-              videoSource: videoUrl!,
-              audioSource: audioUrl,
-            ),
+          : NetworkSource(videoSource: videoUrl!, audioSource: audioUrl),
       seekTo: seek,
       duration: data.timeLength == null
           ? null
@@ -864,15 +970,18 @@ class VideoDetailController extends GetxController
             // TODO: refa
             final sb = StringBuffer('edl://!no_clip;!no_chapters;');
             for (var i in durl) {
-              final video = VideoUtils.getCdnUrl(i.playUrls);
+              final video = VideoUtils.resolveCdnUrl(i.playUrls).primaryUrl;
               sb.write('%${video.length}%$video,length=${i.length! / 1000};');
             }
             videoUrl = sb.toString();
+            _videoSources = [videoUrl!];
           } else {
-            videoUrl = VideoUtils.getCdnUrl(durl.single.playUrls);
+            _videoSources = durl.single.playUrls.toList();
+            videoUrl = VideoUtils.resolveCdnUrl(_videoSources).primaryUrl;
           }
 
           audioUrl = '';
+          _audioSources = const [];
 
           // 实际为FLV/MP4格式，但已被淘汰，这里仅做兜底处理
           final videoQuality = VideoQuality.fromCode(data.quality!);
@@ -942,10 +1051,10 @@ class VideoDetailController extends GetxController
       );
       _setVideoHeight();
 
-      videoUrl = VideoUtils.getCdnUrl(firstVideo.playUrls);
+      _videoSources = firstVideo.playUrls.toList();
 
       /// 优先顺序 设置中指定质量 -> 当前可选的最高质量
-      AudioItem? firstAudio;
+      firstAudio = null;
       final audioList = data.dash?.audio;
       if (audioList != null && audioList.isNotEmpty) {
         final List<int> audioIds = audioList.map((map) => map.id!).toList();
@@ -957,17 +1066,21 @@ class VideoDetailController extends GetxController
             audioIds.any((e) => e > plPlayerController.cacheAudioQa)) {
           closestNumber = AudioQuality.k192.code;
         }
-        firstAudio = audioList.firstWhere(
+        final selectedAudio = audioList.firstWhere(
           (e) => e.id == closestNumber,
           orElse: () => audioList.first,
         );
-        audioUrl = VideoUtils.getCdnUrl(firstAudio.playUrls, isAudio: true);
-        if (firstAudio.id case final int id?) {
+        firstAudio = selectedAudio;
+        _audioSources = selectedAudio.playUrls.toList();
+        if (selectedAudio.id case final int id?) {
           currentAudioQa = AudioQuality.fromCode(id);
         }
       } else {
         audioUrl = '';
+        _audioSources = const [];
       }
+      _avoidCdnHost = null;
+      _resolveCdnSources();
       await _initPlayerIfNeeded(autoFullScreenFlag);
     } else {
       _autoPlay.value = false;
@@ -1232,6 +1345,10 @@ class VideoDetailController extends GetxController
 
   @override
   void onClose() {
+    _cdnBufferWorker?.dispose();
+    _cdnStallTimer?.cancel();
+    _cdnRetryTimer?.cancel();
+    _cdnSpeedTimer?.cancel();
     cid.close();
     if (isFileSource) {
       cacheLocalProgress();
@@ -1257,6 +1374,12 @@ class VideoDetailController extends GetxController
     defaultST = null;
     videoUrl = null;
     audioUrl = null;
+    _videoSources = const [];
+    _audioSources = const [];
+    _avoidCdnHost = null;
+    _cdnStallEpisode = false;
+    _cdnStallTimer?.cancel();
+    _cdnRetryTimer?.cancel();
 
     // danmaku
     savedDanmaku = null;
@@ -1304,10 +1427,7 @@ class VideoDetailController extends GetxController
     try {
       final res = await Request().get(
         'https://bvc.bilivideo.com/pbp/data',
-        queryParameters: {
-          'bvid': bvid,
-          'cid': cid.value,
-        },
+        queryParameters: {'bvid': bvid, 'cid': cid.value},
       );
       PbpData data = PbpData.fromJson(res.data);
       int stepSec = data.stepSec ?? 0;
@@ -1575,13 +1695,7 @@ class VideoDetailController extends GetxController
       if (kDebugMode) {
         debugPrint(title);
       }
-      Get.toNamed(
-        '/dlna',
-        parameters: {
-          'url': url,
-          'title': ?title,
-        },
-      );
+      Get.toNamed('/dlna', parameters: {'url': url, 'title': ?title});
     } else {
       res.toast();
     }

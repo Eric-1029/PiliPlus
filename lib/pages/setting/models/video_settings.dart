@@ -1,26 +1,25 @@
 import 'dart:io';
 
 import 'package:PiliPlus/models/common/video/audio_quality.dart';
-import 'package:PiliPlus/models/common/video/cdn_type.dart';
 import 'package:PiliPlus/models/common/video/live_quality.dart';
 import 'package:PiliPlus/models/common/video/video_decode_type.dart';
 import 'package:PiliPlus/models/common/video/video_quality.dart';
 import 'package:PiliPlus/pages/setting/models/model.dart';
+import 'package:PiliPlus/pages/setting/pages/cdn_accelerator.dart';
 import 'package:PiliPlus/pages/setting/widgets/ordered_multi_select_dialog.dart';
 import 'package:PiliPlus/pages/setting/widgets/select_dialog.dart';
 import 'package:PiliPlus/plugin/pl_player/models/audio_output_type.dart';
 import 'package:PiliPlus/plugin/pl_player/models/hwdec_type.dart';
+import 'package:PiliPlus/services/cdn_accelerator_service.dart';
 import 'package:PiliPlus/utils/filtering_text.dart';
 import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/storage_key.dart';
 import 'package:PiliPlus/utils/storage_pref.dart';
-import 'package:PiliPlus/utils/video_utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show FilteringTextInputFormatter;
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
-import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 
 List<SettingsModel> get videoSettings => [
   const SwitchModel(
@@ -55,34 +54,24 @@ List<SettingsModel> get videoSettings => [
       ),
     ),
   ),
-  NormalModel(
-    title: 'CDN 设置',
-    leading: const Icon(MdiIcons.cloudPlusOutline),
-    getSubtitle: () =>
-        '当前使用：${VideoUtils.cdnService.desc}，部分 CDN 可能失效，如无法播放请尝试切换',
-    onTap: _showCDNDialog,
-  ),
-  NormalModel(
-    title: '直播 CDN 设置',
-    leading: const Icon(MdiIcons.cloudPlusOutline),
-    getSubtitle: () => '当前使用：${Pref.liveCdnUrl ?? "默认"}',
-    onTap: _showLiveCDNDialog,
-  ),
-  const SwitchModel(
-    title: 'CDN 测速',
-    leading: Icon(Icons.speed),
-    subtitle: '测速通过模拟加载视频实现，注意流量消耗，结果仅供参考',
-    setKey: SettingBoxKey.cdnSpeedTest,
-    defaultVal: true,
-  ),
-  SwitchModel(
-    title: '音频不跟随 CDN 设置',
-    subtitle: '直接采用备用 URL，可解决部分视频无声',
-    leading: const Icon(MdiIcons.musicNotePlus),
-    setKey: SettingBoxKey.disableAudioCDN,
-    defaultVal: false,
-    onChanged: (value) => VideoUtils.disableAudioCDN = value,
-  ),
+  if (Platform.isAndroid)
+    NormalModel(
+      title: '播放加速',
+      leading: const Icon(Icons.bolt_outlined),
+      getSubtitle: () {
+        final service = CdnAcceleratorService.instance;
+        if (!service.config.enabled) return '已关闭';
+        return service.config.selection.name == 'auto'
+            ? '自动选择最快线路'
+            : '固定线路：${service.config.fixedHost}';
+      },
+      onTap: (context, setState) async {
+        await Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => const CdnAcceleratorPage()),
+        );
+        setState();
+      },
+    ),
   NormalModel(
     title: '默认画质',
     leading: const Icon(Icons.video_settings_outlined),
@@ -172,62 +161,6 @@ List<SettingsModel> get videoSettings => [
   ),
 ];
 
-Future<void> _showCDNDialog(BuildContext context, VoidCallback setState) async {
-  final res = await showDialog<CDNService>(
-    context: context,
-    builder: (context) => const CdnSelectDialog(),
-  );
-  if (res != null) {
-    VideoUtils.cdnService = res;
-    await GStorage.setting.put(SettingBoxKey.CDNService, res.name);
-    setState();
-  }
-}
-
-Future<void> _showLiveCDNDialog(
-  BuildContext context,
-  VoidCallback setState,
-) async {
-  String host = Pref.liveCdnUrl ?? '';
-  String? res = await showDialog<String>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('输入CDN host'),
-      content: TextFormField(
-        initialValue: host,
-        autofocus: true,
-        onChanged: (value) => host = value,
-      ),
-      actions: [
-        TextButton(
-          onPressed: Get.back,
-          child: Text(
-            '取消',
-            style: TextStyle(color: ColorScheme.of(context).outline),
-          ),
-        ),
-        TextButton(
-          onPressed: () => Get.back(result: host),
-          child: const Text('确定'),
-        ),
-      ],
-    ),
-  );
-  if (res != null) {
-    if (res.isEmpty) {
-      res = null;
-      await GStorage.setting.delete(SettingBoxKey.liveCdnUrl);
-    } else {
-      if (!res.startsWith('http')) {
-        res = 'https://$res';
-      }
-      await GStorage.setting.put(SettingBoxKey.liveCdnUrl, res);
-    }
-    VideoUtils.liveCdnUrl = res;
-    setState();
-  }
-}
-
 Future<void> _showVideoQaDialog(
   BuildContext context,
   VoidCallback setState,
@@ -259,10 +192,7 @@ Future<void> _showVideoCellularQaDialog(
     ),
   );
   if (res != null) {
-    await GStorage.setting.put(
-      SettingBoxKey.defaultVideoQaCellular,
-      res,
-    );
+    await GStorage.setting.put(SettingBoxKey.defaultVideoQaCellular, res);
     setState();
   }
 }
@@ -298,10 +228,7 @@ Future<void> _showAudioCellularQaDialog(
     ),
   );
   if (res != null) {
-    await GStorage.setting.put(
-      SettingBoxKey.defaultAudioQaCellular,
-      res,
-    );
+    await GStorage.setting.put(SettingBoxKey.defaultAudioQaCellular, res);
     setState();
   }
 }
@@ -372,16 +299,11 @@ Future<void> _showAudioOutputDialog(
     builder: (context) => OrderedMultiSelectDialog<String>(
       title: '音频输出设备',
       initValues: Pref.audioOutput.split(','),
-      values: {
-        for (final e in AudioOutput.values) e.name: e.label,
-      },
+      values: {for (final e in AudioOutput.values) e.name: e.label},
     ),
   );
   if (res != null && res.isNotEmpty) {
-    await GStorage.setting.put(
-      SettingBoxKey.audioOutput,
-      res.join(','),
-    );
+    await GStorage.setting.put(SettingBoxKey.audioOutput, res.join(','));
     setState();
   }
 }
@@ -429,10 +351,7 @@ Future<void> _showHwDecDialog(
     ),
   );
   if (res != null && res.isNotEmpty) {
-    await GStorage.setting.put(
-      SettingBoxKey.hardwareDecoding,
-      res.join(','),
-    );
+    await GStorage.setting.put(SettingBoxKey.hardwareDecoding, res.join(','));
     setState();
   }
 }

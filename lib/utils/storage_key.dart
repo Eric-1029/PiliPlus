@@ -38,6 +38,8 @@ abstract final class SettingBoxKey {
       horizontalScreen = 'horizontalScreen',
       CDNService = 'CDNService',
       disableAudioCDN = 'disableAudioCDN',
+      cdnAcceleratorConfig = 'cdnAcceleratorConfig',
+      cdnAcceleratorMigrated = 'cdnAcceleratorMigrated',
       autoPiP = 'autoPiP',
       enableAutoLongPressSpeed = 'enableAutoLongPressSpeed',
       useRelativeSlide = 'useRelativeSlide',
@@ -240,6 +242,8 @@ abstract final class SettingBoxKey {
 
 abstract final class LocalCacheKey {
   static const String historyPause = 'historyPause',
+      cdnAcceleratorRankPrefix = 'cdnAcceleratorRank.',
+      cdnAcceleratorStats = 'cdnAcceleratorStats',
       blackMids = 'blackMids',
       danmakuFilterRules = 'danmakuFilterRules',
       mixinKey = 'mixinKey',
