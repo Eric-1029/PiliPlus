@@ -36,4 +36,3 @@ SOFTWARE.
 ```
 
 The PiliPlus distribution as a whole remains licensed under GPL-3.0. The notice above preserves the copyright and license terms of the incorporated MIT-licensed material.
-
